@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: owasp-compliance-demo
+    env: node
+    region: singapore
+    plan: free
+    buildCommand: npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: MONGODB_URI
+        sync: false   # Set manually in Render dashboard
+      - key: JWT_SECRET
+        generateValue: true
+      - key: REFRESH_SECRET
+        generateValue: true
+      - key: AES_KEY
+        sync: false   # Must be exactly 64 hex chars — generate manually
+      - key: CLIENT_ORIGIN
+        sync: false   # Your render.com URL e.g. https://owasp-demo.onrender.com

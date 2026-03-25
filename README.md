@@ -1,0 +1,209 @@
+# 🛡 OWASP Security Compliance Demo
+### LivingAI Solutions — Document D-16
+
+An interactive, full-stack demonstration of all **OWASP Top 10 (Web + API)** security controls, built with **React + Vite**, **Express.js**, and **MongoDB Atlas**.
+
+Every control is **live and testable** — not just documented.
+
+---
+
+## 🏗 Architecture
+
+```
+owasp-demo/
+├── backend/
+│   ├── server.js                   ← helmet, CORS, rate limit, SSR serving
+│   ├── src/
+│   │   ├── config/db.js            ← MongoDB Atlas connection
+│   │   ├── middleware/
+│   │   │   ├── authenticate.js     ← JWT verification (A07)
+│   │   │   ├── rbac.js             ← Role-based access control (A01)
+│   │   │   ├── rateLimiter.js      ← Login + API rate limits (A07, API4)
+│   │   │   └── ssrfGuard.js        ← Private IP blocking (A10)
+│   │   ├── models/
+│   │   │   ├── User.js             ← AES-encrypted PII, bcrypt, lockout
+│   │   │   └── AuditLog.js         ← 1-year TTL audit trail (A09)
+│   │   ├── routes/
+│   │   │   ├── auth.routes.js      ← Login, refresh, seed, logout
+│   │   │   ├── demo.routes.js      ← All 10 OWASP interactive endpoints
+│   │   │   └── compliance.routes.js← Status report + SSE log stream
+│   │   └── utils/
+│   │       ├── logger.js           ← Winston + real-time SSE broadcast (A09)
+│   │       └── crypto.js           ← AES-256-GCM PII encryption (A02)
+│   └── public/                     ← React build output (auto-generated)
+│
+├── frontend/
+│   └── src/
+│       ├── pages/
+│       │   ├── LoginPage.jsx       ← Seed button + quick role login
+│       │   ├── DashboardPage.jsx   ← Compliance score + OWASP grid
+│       │   ├── DemoPage.jsx        ← Routes to interactive demos
+│       │   └── LogsPage.jsx        ← Live SSE audit log stream
+│       └── components/demos/
+│           ├── A01Demo.jsx         ← RBAC role tester
+│           ├── A02Demo.jsx         ← AES-256 encryption visualiser
+│           ├── A03Demo.jsx         ← Injection attack tester
+│           ├── A05Demo.jsx         ← Security headers inspector
+│           ├── A06Demo.jsx         ← SBOM dependency scanner
+│           ├── A07Demo.jsx         ← JWT session + token expiry bar
+│           ├── A08Demo.jsx         ← Build integrity checker
+│           └── A10Demo.jsx         ← SSRF URL tester
+│
+├── render.yaml                     ← Render.com deploy config
+└── package.json                    ← Root build/start scripts
+```
+
+---
+
+## ⚡ Quick Start (Local)
+
+### 1. Prerequisites
+- Node.js 18+
+- Free [MongoDB Atlas](https://www.mongodb.com/atlas) account
+
+### 2. MongoDB Atlas Setup
+1. Create a free cluster at cloud.mongodb.com
+2. Create a DB user (strong password)
+3. Add your IP to the allowlist
+4. Copy the connection string:
+   `mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/owasp-demo?retryWrites=true&w=majority`
+
+### 3. Environment Setup
+
+```bash
+cd backend
+cp .env.example .env
+# Fill in the values below
+```
+
+```env
+MONGODB_URI=mongodb+srv://...
+
+# node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+JWT_SECRET=<64-char hex>
+REFRESH_SECRET=<64-char hex>
+
+# node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+AES_KEY=<64-char hex — exactly 64 chars>
+
+PORT=5000
+NODE_ENV=development
+CLIENT_ORIGIN=http://localhost:5173
+```
+
+### 4. Install & Run
+
+```bash
+# Install dependencies
+cd backend  && npm install
+cd ../frontend && npm install
+
+# Terminal 1 — Backend
+cd backend && node server.js
+
+# Terminal 2 — Frontend dev server
+cd frontend && npm run dev
+```
+
+Open http://localhost:5173
+
+### 5. Seed Demo Users
+On the login page, click **"Seed Demo Users into MongoDB Atlas"**
+
+| Email | Password | Role | Access Level |
+|-------|----------|------|-------------|
+| admin@demo.com | Demo@Password123 | SuperAdmin | Everything |
+| manager@demo.com | Demo@Password123 | Manager | Manager + below |
+| analyst@demo.com | Demo@Password123 | Analyst | Analyst endpoints |
+| viewer@demo.com | Demo@Password123 | Viewer | Read-only |
+| other@demo.com | Demo@Password123 | Analyst | org-beta only |
+
+---
+
+## 🚀 Deploy to Render.com
+
+### Step 1 — Push to GitHub
+```bash
+git init && git add . && git commit -m "OWASP compliance demo"
+git remote add origin https://github.com/<you>/<repo>.git
+git push -u origin main
+```
+
+### Step 2 — Create Web Service
+1. dashboard.render.com → New → Web Service
+2. Connect your GitHub repo
+3. Render detects `render.yaml` automatically → click Apply
+
+### Step 3 — Set Env Variables in Render Dashboard
+Go to your service → Environment tab:
+
+| Key | Value |
+|-----|-------|
+| `MONGODB_URI` | Your Atlas connection string |
+| `AES_KEY` | 64-char hex (32 bytes) |
+| `CLIENT_ORIGIN` | https://your-app.onrender.com |
+
+JWT_SECRET and REFRESH_SECRET are auto-generated by render.yaml.
+
+### Step 4 — Deploy
+Render runs `npm run build` (builds React into `backend/public/`) then `npm start`.
+
+---
+
+## 🔐 OWASP Controls Demonstrated
+
+| Control | Severity | Demo Type | What You See |
+|---------|----------|-----------|-------------|
+| A01 Broken Access Control | CRITICAL | Live RBAC tester | 403 vs 200 by role |
+| A02 Cryptographic Failures | CRITICAL | Encryption visualiser | plaintext → AES-256-GCM → decrypted |
+| A03 Injection | CRITICAL | Attack payload tester | XSS/NoSQL/SQL/Prompt detected & blocked |
+| A04 Insecure Design | HIGH | Architecture docs | STRIDE, SDL, multi-tenant isolation |
+| A05 Misconfiguration | HIGH | Headers inspector | All 8 helmet() headers listed live |
+| A06 Outdated Components | HIGH | SBOM viewer | Dependency scan + patch SLA table |
+| A07 Auth Failures | HIGH | Session inspector | JWT expiry countdown, cookie flags |
+| A08 Integrity Failures | HIGH | Build integrity | Lock file hash, SLSA, signed commits |
+| A09 Logging & Monitoring | MEDIUM | Live SSE log stream | Every security event in real-time |
+| A10 SSRF | MEDIUM | URL tester | AWS metadata + private IPs blocked |
+
+---
+
+## 🧪 Test Scenarios
+
+### A01 — Access Control
+1. Login as `viewer@demo.com`
+2. Dashboard → Demo → A01 → click "Admin-Only Endpoint" → **403 Forbidden**
+3. Login as `admin@demo.com` → same button → **200 OK**
+
+### A03 — Injection
+1. Demo → A03 → click "NoSQL injection" preset → blocked
+2. Click "XSS attempt" → blocked
+3. Type "Hello World" → safe pass-through
+
+### A07 — Brute Force Lockout
+1. Login page → wrong password 5 times for analyst@demo.com
+2. 5th attempt: **account locked for 15 minutes**
+
+### A10 — SSRF
+1. Demo → A10 → click "AWS Metadata" → **BLOCKED**
+2. Click "Private IP" → **BLOCKED**
+3. Click "Safe External" (github.com) → **ALLOWED**
+
+### A09 — Live Monitoring
+1. Open Live Logs tab
+2. In another tab: trigger failed logins, RBAC blocks, SSRF tests
+3. Watch every event stream in real-time
+
+---
+
+## 📋 Patch SLA (D-16 Part 5)
+
+| Severity | Deadline | Escalation |
+|----------|----------|-----------|
+| CRITICAL | 24 hours | CTO + CEO immediately |
+| HIGH | 7 days | CTO within 4 hours |
+| MEDIUM | 30 days | Dev Lead next sprint |
+| LOW | 90 days | Backlog |
+
+---
+
+LivingAI Solutions LLP — Document D-16 v1.0 — G-89, Sector 63, Noida, U.P.
