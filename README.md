@@ -208,7 +208,7 @@ Render runs `npm run build` (builds React into `backend/public/`) then `npm star
 
 ---
 
-## 📋 Patch SLA (D-16 Part 5)
+## 📋 Patch SLA
 
 | Severity | Deadline | Escalation            |
 | -------- | -------- | --------------------- |
